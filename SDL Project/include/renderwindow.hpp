@@ -79,7 +79,7 @@ struct RenderWindow  //program window
         {
             shakeDecay *= decayRate;
             offsetX += sin(SDL_GetTicks()/shakeSpeed) * shakeDecay; //shake the camera using a sine with a constantly decreasing amplitude
-            if (abs(shakeDecay) < 0.001) shakeDecay = 0;
+            if (abs(shakeDecay) < 1.0f) shakeDecay = 0; //truncate small values
         }
     }
 

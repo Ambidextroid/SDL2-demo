@@ -5,9 +5,12 @@ namespace cnst
 {
     constexpr int WIN_W = 1000;     //program window dimenstions
     constexpr int WIN_H = 800;
-    constexpr int TIME_STEP = 10;   //game simulation time stp in milliseconds, default is 10
     constexpr int TILE_SIZE = 50;   //size of tiles in pixels
-    constexpr int ANIM_DEF = 0;     //animation modes: DEF plays the animation once then returns to the default animation
-    constexpr int ANIM_END = 1;     //END plays the animation once and then stops
-    constexpr int ANIM_REP = 2;     //REP repeats the animation
+    constexpr int TIME_STEP = 10;   //game simulation time step in milliseconds
+    //animation modes
+    constexpr int ANIM_REPEAT = 0;  //loop
+    constexpr int ANIM_END = 1;     //play once and stop
+    constexpr int ANIM_DEFAULT = 2; //play once, set animNo to 0 and loop
+
+    constexpr int TERMINAL_VEL = 23;    //max downward velocity
 }

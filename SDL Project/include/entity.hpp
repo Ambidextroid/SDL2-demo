@@ -34,6 +34,7 @@ public:
     virtual void updateCollisions(Map *map);
     virtual bool hasGravity();
     virtual bool hasCollisions();
+    virtual void updateKeyDoor(Map *map);
     
 protected:
     float x, y;             //position relative to world
@@ -125,24 +126,26 @@ private:
 class Door : public AnimEntity
 {
 public:
-    Door(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *doorSfx);
+    Door(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *doorSfx, Player *player);
 
-    void update(Player *player, Map *map);
+    virtual void updateKeyDoor(Map *map) override;
 private:
     bool open;
     Mix_Chunk *doorSfx;
+    Player *player;
 };
 
 //---------------------------------------- Key ----------------------------------------
 class Key : public AnimEntity
 {
 public:
-    Key(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *keySfx);
+    Key(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *keySfx, Player *player);
 
-    void update(Player *player);
+    virtual void updateKeyDoor(Map *map) override;
     void render(int offsetX, int offsetY) override;
 
 private:
     bool collected;
     Mix_Chunk *keySfx;
+    Player *player;
 };

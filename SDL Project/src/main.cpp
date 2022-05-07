@@ -5,10 +5,6 @@
 #include <vector>
 #include <cmath>
 
-SDL_Window *window;     //program window
-SDL_Renderer *renderer; //SDL renderer
-int offsetX, offsetY, targetOffsetX, targetOffsetY;   //camera offsets
-
 #include "../include/cnst.hpp"
 #include "../include/Media.hpp"
 #include "../include/Entity.hpp"
@@ -22,18 +18,20 @@ int main(int argc, char* args[])
     if(Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) < 0) std::cout << "Sound failed: " << Mix_GetError() << std::endl; //sounds
     
     //create window and renderer
-    window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, cnst::WIN_W, cnst::WIN_H, SDL_WINDOW_SHOWN);
+    SDL_Window *window = SDL_CreateWindow("Game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, cnst::WIN_W, cnst::WIN_H, SDL_WINDOW_SHOWN);
     if (window==NULL) std::cout << "Window failed: " << SDL_GetError() << std::endl;
-    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
     //get monitor refresh rate
     SDL_DisplayMode mode;
     SDL_GetDisplayMode(SDL_GetWindowDisplayIndex(window), 0, &mode);
     const float refreshRate = mode.refresh_rate;
 
-    Media media;    //media manager/storage
+    Media media(renderer);    //media manager/storage
 
-    Map map(&media);
+    int offsetX, offsetY, targetOffsetX, targetOffsetY;
+
+    Map map(&media, &offsetX, &offsetY, &targetOffsetX, &targetOffsetY);
 
     //player
     AnimEntity dust1(-100, -100, media.dustTex, cnst::TILE_SIZE, cnst::TILE_SIZE, &media.dustClips);
@@ -41,7 +39,6 @@ int main(int argc, char* args[])
     Player player(3 * cnst::TILE_SIZE, 31 * cnst::TILE_SIZE, media.playerTex, &media.playerClips, media.jumpSfx, media.dashSfx, media.thudSfx, &dust1, &dust2);
     player.setAnim(0, cnst::ANIM_REPEAT, 80);
     
-
     //doors
     Door door1(16 * cnst::TILE_SIZE, 28 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx, &player);
     Door door2(23 * cnst::TILE_SIZE, 19 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx, &player);
@@ -53,16 +50,16 @@ int main(int argc, char* args[])
     //tutorial
     Entity tutorial(6 * cnst::TILE_SIZE, 26 * cnst::TILE_SIZE, media.tutorialTex, 450, 250, 0);
 
-    //entities in the game to be iteratively updated
-    std::vector<Entity *> entities;         
+    //entities in the game to be iteratively updated    (in render order)
+    std::vector<Entity *> entities;
+    entities.push_back(&tutorial);
     entities.push_back(&door1);
     entities.push_back(&door2);
     entities.push_back(&key1);
     entities.push_back(&key2);
-    entities.push_back(&tutorial);
-    entities.push_back(&player);
     entities.push_back(&dust1);
     entities.push_back(&dust2);
+    entities.push_back(&player);
 
     Mix_PlayMusic(media.bgMusic, -1); //play music
 
@@ -94,42 +91,46 @@ int main(int argc, char* args[])
                         if (player.canDoubleJump && !player.onGround) player.jump();
                         break;
                     case SDLK_LSHIFT:
-                        if (player.canDash()) player.dash();
+                        player.dash();
                     }
                 }
             }
 
             //process held keys (registered continuously)
             const Uint8 *keyState = SDL_GetKeyboardState(NULL);         //current state of keyboard
-            if(!player.isStunned())                                     //if player is not stunned
+
+            if(keyState[SDL_SCANCODE_LEFT])                             //if left is being held
             {
-                if(keyState[SDL_SCANCODE_LEFT])                         //if left is being held
-                {
-                    player.addXVel(-0.5);                               //move left
-                    if (player.getAnim() != 2) player.setAnim(2, cnst::ANIM_REPEAT, 80); //moving left animation
-                }
-                if(keyState[SDL_SCANCODE_RIGHT])
-                {
-                    player.addXVel(0.5);                                //move right
-                    if (player.getAnim() != 1) player.setAnim(1, cnst::ANIM_REPEAT, 80);
-                }
-                if(keyState[SDL_SCANCODE_SPACE] && player.onGround)
-                {
-                    player.jump();
-                }
+                player.moveLeft();
             }
-            player.drag(0.9);                           //set default drag force
-            if(!keyState[SDL_SCANCODE_LEFT] && !keyState[SDL_SCANCODE_RIGHT])
+            if(keyState[SDL_SCANCODE_RIGHT])                            //if right is being held
             {
-                if (player.onGround) player.drag(0.7);  //extra drag when standing on floor
+                player.moveRight();
+            }
+            if(keyState[SDL_SCANCODE_SPACE] && player.onGround)         //if space is being held and player is on ground
+            {
+                player.jump();
+            }
+            
+            player.drag(0.9);                                                   //set default drag force
+            if(!keyState[SDL_SCANCODE_LEFT] && !keyState[SDL_SCANCODE_RIGHT])   //if not moving left or right
+            {
+                if (player.onGround) player.drag(0.7);                          //extra drag when standing on floor
                 if (player.getAnim() != 0 && player.getAnim() != 3) player.setAnim(0, cnst::ANIM_REPEAT, 80);   //idle animation when not moving
             }
 
             //update entity physics
-            for (Entity *e : entities)
+
+            for (auto i = entities.end() - 1; i >= entities.begin(); i--)   //iterate through entities (in reverse, so that deleting an entity will not skip the next)
             {
-                if (e->hasGravity()) e->updateGravity(0.5);
-                if (e->hasCollisions()) e->updateCollisions(&map);
+                Entity *e = *i;
+                if (e->deleted)
+                {
+                    entities.erase(i);  //remove from entitiy list
+                    continue;
+                }
+                e->updateGravity(0.5);
+                e->updateCollisions(&map);
                 e->updateKeyDoor(&map);
                 e->updatePos();
             }
@@ -143,12 +144,12 @@ int main(int argc, char* args[])
         SDL_RenderClear(renderer);              //clear screen with dark blue
         
         //render entities
-        map.drawParralax();
-        map.drawMap();
+        map.drawParralax(renderer);
+        map.drawMap(renderer);
         for (Entity *e : entities)
         {
             e->updateClips();
-            e->render(-offsetX, -offsetY);
+            e->render(-offsetX, -offsetY, renderer);
         }
 
         

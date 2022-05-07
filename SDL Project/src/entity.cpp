@@ -1,12 +1,9 @@
 #include "../include/entity.hpp"
 
-extern SDL_Renderer *renderer;
-extern int offsetX, offsetY, targetOffsetX, targetOffsetY;
-
 //---------------------------------------- Entity ----------------------------------------
 //any object with a position and an image
 Entity::Entity(int x, int y, SDL_Texture *tex, int w, int h, int imageNo)
-: x(x), y(y), tex(tex), currentClip({0, imageNo * h, w, h})
+: deleted(false), x(x), y(y), tex(tex), currentClip({0, imageNo * h, w, h})
 {}
 
 float Entity::getX() { return x; }
@@ -20,7 +17,7 @@ void Entity::setPos(float x, float y)
 }
 
 //render entity tex to screen
-void Entity::render(int offsetX, int offsetY)
+void Entity::render(int offsetX, int offsetY, SDL_Renderer *renderer)
 {
     SDL_Rect dest;          //render destination
     dest.x = x + offsetX;   //entitiy world position + camera offsets
@@ -35,10 +32,7 @@ void Entity::updateClips() {}
 void Entity::updatePos() {}
 void Entity::updateGravity(float gravity) {}
 void Entity::updateCollisions(Map *map) {}
-bool Entity::hasGravity() { return false; }
-bool Entity::hasCollisions() { return false; }
 void Entity::updateKeyDoor(Map *map) {}
-
 
 
 //---------------------------------------- AnimEntity ----------------------------------------
@@ -91,56 +85,58 @@ void ActiveEntity::updatePos()
     y += yVel;
 }
 
-bool ActiveEntity::hasGravity() { return gravity; }
-
 void ActiveEntity::updateGravity(float gravity)
 {
-    yVel += gravity;
-    if (yVel >= cnst::TERMINAL_VEL) yVel = cnst::TERMINAL_VEL;
+    if (gravity)
+    {
+        yVel += gravity;
+        if (yVel >= cnst::TERMINAL_VEL) yVel = cnst::TERMINAL_VEL;
+    }
 }
-
-bool ActiveEntity::hasCollisions() { return collisions; }
 
 void ActiveEntity::updateCollisions(Map *map)
 {
-    if (xVel >= 0)      //if moving right
+    if (collisions)
     {
-        if (map->checkCollision('r', this, 1))  //if entity will collide with wall to the right
+        if (xVel >= 0)      //if moving right
         {
-            xVel = 0;   //stop
-            if ((int)prevX % 50 > 0) x = (int)prevX - (int)prevX % 50 + 50; //align entity with wall
-            else x = (int)prevX;
+            if (map->checkCollision('r', this, 1))  //if entity will collide with wall to the right
+            {
+                xVel = 0;   //stop
+                if ((int)prevX % 50 > 0) x = (int)prevX - (int)prevX % 50 + 50; //align entity with wall
+                else x = (int)prevX;
+            }
         }
-    }
-    else                //left
-    {
-        if (map->checkCollision('l', this, 1))
+        else                //left
         {
-            xVel = 0;
-            if ((int)prevX % 50 > 0) x = (int)prevX - (int)prevX % 50;
-            else x = (int)prevX;
+            if (map->checkCollision('l', this, 1))
+            {
+                xVel = 0;
+                if ((int)prevX % 50 > 0) x = (int)prevX - (int)prevX % 50;
+                else x = (int)prevX;
+            }
         }
-    }
-    if (yVel >= 0)      //up
-    {
-        if (map->checkCollision('d', this, 1))
+        if (yVel >= 0)      //up
         {
-            yVel = 0;
-            if ((int)prevY % 50 > 0) y = (int)prevY - (int)prevY % 50 + 50;
-            else y = (int)prevY;
+            if (map->checkCollision('d', this, 1))
+            {
+                yVel = 0;
+                if ((int)prevY % 50 > 0) y = (int)prevY - (int)prevY % 50 + 50;
+                else y = (int)prevY;
+            }
         }
-    }
-    else                //down
-    {
-        if (map->checkCollision('u', this, 1))
+        else                //down
         {
-            yVel = 0;
-            if ((int)prevY % 50 > 0) y = (int)prevY - (int)prevY % 50;
-            else y = (int)prevY;
+            if (map->checkCollision('u', this, 1))
+            {
+                yVel = 0;
+                if ((int)prevY % 50 > 0) y = (int)prevY - (int)prevY % 50;
+                else y = (int)prevY;
+            }
         }
+        prevX = x;
+        prevY = y;
     }
-    prevX = x;
-    prevY = y;
 }
 
 float ActiveEntity::getXVel() { return xVel; }
@@ -160,7 +156,7 @@ AnimEntity *dust1, AnimEntity *dust2)
   jumpSfx(jumpSfx), dashSfx(dashSfx), thudSfx(thudSfx), dust1(dust1), dust2(dust2)
 {}
 
-void Player::render(int offsetX, int offsetY)
+void Player::render(int offsetX, int offsetY, SDL_Renderer *renderer)
 {
     SDL_Rect dest;
     dest.x = x + offsetX - 10;      //player sprite has extra offset
@@ -168,6 +164,24 @@ void Player::render(int offsetX, int offsetY)
     dest.w = currentClip.w;
     dest.h = currentClip.h;
     SDL_RenderCopy(renderer, tex, &currentClip, &dest);
+}
+
+void Player::moveLeft()
+{
+    if (!isStunned())
+    {
+        xVel -= 0.5;
+        if (getAnim() != 2) setAnim(2, cnst::ANIM_REPEAT, 80);      //moving left animation
+    }
+}
+
+void Player::moveRight()
+{
+    if (!isStunned()) 
+    {
+        xVel += 0.5;
+        if (getAnim() != 1) setAnim(1, cnst::ANIM_REPEAT, 80);      //moving right animation
+    }
 }
 
 bool Player::isStunned()
@@ -179,36 +193,37 @@ void Player::stun(int duration)
     stunTime = SDL_GetTicks() + duration;                   //set stun time to current time + specified stun duration
 }
 
-bool Player::canDash()
-{
-    if (abs(xVel == 0)) return false;                       //player cannot dash if not moving
-    return (SDL_GetTicks() < dashTime) ? false : true;      //if current time is not yet dashTime, player cannot dash
-}
 void Player::dash()
 {
-    yVel = 0;                           //stop player falling
-    if (xVel > 0) xVel = 22;            //if payer is moving right, dash right
-    else xVel = -22;
-    dashTime = SDL_GetTicks() + 800;    //dash has an 800ms cooldown
-    dust1->setPos(x - 20, y - 30);
-    dust1->setAnim(4, cnst::ANIM_END, 30);
-    dust2->setPos(x - 20, y + 30);
-    dust2->setAnim(5, cnst::ANIM_END, 30);
-    Mix_PlayChannel(-1, dashSfx, 0);    //dash sound
+    if (abs(xVel != 0) && !isStunned() && SDL_GetTicks() > dashTime)
+    {
+        yVel = 0;                           //stop player falling
+        if (xVel > 0) xVel = 22;            //if payer is moving right, dash right
+        else xVel = -22;
+        dashTime = SDL_GetTicks() + 800;    //dash has an 800ms cooldown
+        dust1->setPos(x - 20, y - 30);
+        dust1->setAnim(4, cnst::ANIM_END, 30);
+        dust2->setPos(x - 20, y + 30);
+        dust2->setAnim(5, cnst::ANIM_END, 30);
+        Mix_PlayChannel(-1, dashSfx, 0);    //dash sound
+    }
 }
 void Player::jump()
 {
-    yVel = -12;
-    if (!onGround)      //if double jump
+    if (!isStunned())
     {
-        canDoubleJump = false;
-        dust1->setPos(x - 30, y + 20);                //dust cloud
-        dust1->setAnim(2, cnst::ANIM_END, 30);
-        dust2->setPos(x + 30, y + 20);
-        dust2->setAnim(3, cnst::ANIM_END, 30);
-        Mix_PlayChannel(-1, jumpSfx, 0);    //double jump sound
+        yVel = -12;
+        if (!onGround)          //if double jump
+        {
+            canDoubleJump = false;
+            dust1->setPos(x - 30, y + 20);      //dust cloud
+            dust1->setAnim(2, cnst::ANIM_END, 30);
+            dust2->setPos(x + 30, y + 20);
+            dust2->setAnim(3, cnst::ANIM_END, 30);
+            Mix_PlayChannel(-1, jumpSfx, 0);    //double jump sound
+        }
+        onGround = false;
     }
-    onGround = false;
 }
 
 bool Player::hasKey() { return (keys > 0); }
@@ -321,7 +336,7 @@ void Key::updateKeyDoor(Map *map)
     }
 }
 
-void Key::render(int offsetX, int offsetY)
+void Key::render(int offsetX, int offsetY, SDL_Renderer *renderer)
 {
     SDL_Rect dest;
     dest.x = x + offsetX;

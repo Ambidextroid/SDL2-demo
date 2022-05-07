@@ -24,7 +24,9 @@ struct Media
         //sfx
     Mix_Chunk *jumpSfx, *thudSfx, *dashSfx, *keySfx, *doorSfx;
 
-    Media();
+    SDL_Renderer *renderer;
+
+    Media(SDL_Renderer *renderer);
 
     //load png, return texture pointer
     SDL_Texture *loadTexture(const char *filePath);

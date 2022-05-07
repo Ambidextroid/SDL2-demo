@@ -16,6 +16,8 @@ class Map;
 class Entity
 {
 public:
+    bool deleted;
+    
     Entity(int x, int y, SDL_Texture *tex, int w, int h, int imageNo);
     
     float getX();
@@ -25,15 +27,13 @@ public:
     void setPos(float x, float y);
 
     //render entity tex to screen
-    virtual void render(int offsetX, int offsetY);
+    virtual void render(int offsetX, int offsetY, SDL_Renderer *renderer);
 
     //virtual methods used by derived classes, for updating all entities iteratively
     virtual void updateClips();
     virtual void updatePos();
     virtual void updateGravity(float gravity);
     virtual void updateCollisions(Map *map);
-    virtual bool hasGravity();
-    virtual bool hasCollisions();
     virtual void updateKeyDoor(Map *map);
     
 protected:
@@ -71,10 +71,8 @@ public:
     
     void updatePos() override;
 
-    bool hasGravity() override;
     void updateGravity(float gravity) override;
 
-    bool hasCollisions() override;
     void updateCollisions(Map *map) override;
 
     float getXVel();
@@ -100,11 +98,13 @@ public:
         Mix_Chunk *jumpSfx, Mix_Chunk *dashSfx, Mix_Chunk *thudSfx,
         AnimEntity *dust1, AnimEntity *dust2);
 
-    void render(int offsetX, int offsetY) override;
+    void render(int offsetX, int offsetY, SDL_Renderer *renderer) override;
+
+    void moveLeft();
+    void moveRight();
 
     bool isStunned();
     void stun(int duration);
-    bool canDash();
     void dash();
     void jump();
 
@@ -128,7 +128,8 @@ class Door : public AnimEntity
 public:
     Door(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *doorSfx, Player *player);
 
-    virtual void updateKeyDoor(Map *map) override;
+    void updateKeyDoor(Map *map) override;
+
 private:
     bool open;
     Mix_Chunk *doorSfx;
@@ -141,8 +142,8 @@ class Key : public AnimEntity
 public:
     Key(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *keySfx, Player *player);
 
-    virtual void updateKeyDoor(Map *map) override;
-    void render(int offsetX, int offsetY) override;
+    void updateKeyDoor(Map *map) override;
+    void render(int offsetX, int offsetY, SDL_Renderer *renderer) override;
 
 private:
     bool collected;

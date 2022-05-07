@@ -1,9 +1,8 @@
 #include "../include/media.hpp"
 
-extern SDL_Renderer *renderer;
-
 //struct for loading and storing graphics/sounds and generating animation clips
-Media::Media()
+Media::Media(SDL_Renderer *renderer)
+: renderer(renderer)
 {
     //textures
     playerTex = loadTexture("res/gfx/player.png");

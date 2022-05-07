@@ -43,12 +43,12 @@ int main(int argc, char* args[])
     
 
     //doors
-    Door door1(16 * cnst::TILE_SIZE, 28 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx);
-    Door door2(23 * cnst::TILE_SIZE, 19 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx);
+    Door door1(16 * cnst::TILE_SIZE, 28 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx, &player);
+    Door door2(23 * cnst::TILE_SIZE, 19 * cnst::TILE_SIZE, media.doorTex, &media.doorClips, media.doorSfx, &player);
 
     //keys
-    Key key1(30 * cnst::TILE_SIZE, 43 * cnst::TILE_SIZE, media.keyTex, &media.keyClips, media.keySfx);
-    Key key2(13 * cnst::TILE_SIZE, 11 * cnst::TILE_SIZE, media.keyTex, &media.keyClips, media.keySfx);
+    Key key1(30 * cnst::TILE_SIZE, 43 * cnst::TILE_SIZE, media.keyTex, &media.keyClips, media.keySfx, &player);
+    Key key2(13 * cnst::TILE_SIZE, 11 * cnst::TILE_SIZE, media.keyTex, &media.keyClips, media.keySfx, &player);
 
     //tutorial
     Entity tutorial(6 * cnst::TILE_SIZE, 26 * cnst::TILE_SIZE, media.tutorialTex, 450, 250, 0);
@@ -63,14 +63,6 @@ int main(int argc, char* args[])
     entities.push_back(&player);
     entities.push_back(&dust1);
     entities.push_back(&dust2);
-
-    std::vector<Door *> doors;
-    doors.push_back(&door1);
-    doors.push_back(&door2);
-
-    std::vector<Key *> keys;
-    keys.push_back(&key1);
-    keys.push_back(&key2);
 
     Mix_PlayMusic(media.bgMusic, -1); //play music
 
@@ -138,17 +130,8 @@ int main(int argc, char* args[])
             {
                 if (e->hasGravity()) e->updateGravity(0.5);
                 if (e->hasCollisions()) e->updateCollisions(&map);
+                e->updateKeyDoor(&map);
                 e->updatePos();
-            }
-
-            //update doors and keys
-            for (Door *d : doors)
-            {
-                d->update(&player, &map);
-            }
-            for (Key *k : keys)
-            {
-                k->update(&player);
             }
 
             map.updateCamera(&player);          //update camera offsets and zones

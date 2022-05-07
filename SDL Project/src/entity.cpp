@@ -37,6 +37,7 @@ void Entity::updateGravity(float gravity) {}
 void Entity::updateCollisions(Map *map) {}
 bool Entity::hasGravity() { return false; }
 bool Entity::hasCollisions() { return false; }
+void Entity::updateKeyDoor(Map *map) {}
 
 
 
@@ -278,11 +279,11 @@ void Player::updateCollisions(Map *map)
 
 
 //---------------------------------------- Door ----------------------------------------
-Door::Door(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *doorSfx)
-: AnimEntity(x, y, tex, 50, 200, clips), open(false), doorSfx(doorSfx)
+Door::Door(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *doorSfx, Player *player)
+: AnimEntity(x, y, tex, 50, 200, clips), open(false), doorSfx(doorSfx), player(player)
 {}
 
-void Door::update(Player *player, Map *map)
+void Door::updateKeyDoor(Map *map)
 {
     //if player touches closed door while in possesion of a key
     if (!open && player->hasKey()
@@ -302,11 +303,11 @@ void Door::update(Player *player, Map *map)
 }
 
 //---------------------------------------- Key ----------------------------------------
-Key::Key(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *keySfx)
-: AnimEntity(x, y, tex, 50, 50, clips), collected(0), keySfx(keySfx)
+Key::Key(int x, int y, SDL_Texture *tex, std::vector<std::vector<SDL_Point>> *clips, Mix_Chunk *keySfx, Player *player)
+: AnimEntity(x, y, tex, 50, 50, clips), collected(0), keySfx(keySfx), player(player)
 {}
 
-void Key::update(Player *player)
+void Key::updateKeyDoor(Map *map)
 {
     //if player touches key
     if (!collected

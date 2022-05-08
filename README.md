@@ -11,7 +11,7 @@ This game features animations, parallax effects, smooth camera behaviour and oth
 All graphics, sound effects, music and source code created by Dante S-K.
 
 Files required for game:
-game.exe, libpng16-16.dll, SDL2.dll, SDL2_image.dll, SDL2_mixer.dll, libstdc++-6.dll
+game.exe, libpng16-16.dll, SDL2.dll, SDL2_image.dll, SDL2_mixer.dll, libstdc++-6.dll, zlib1.dll
 and the "res" folder.
 
 "src" and "include" contain source files.

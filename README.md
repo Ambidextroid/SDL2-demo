@@ -1,6 +1,8 @@
 # SDL2-demo
 Platformer demo written in C++ with DSL2
 
+https://www.youtube.com/watch?v=QTcjDp-XWHE
+
 Control the player with left and right arrows. Use space to jump and shift to dash.
 Use double jumps to reach higher areas. Collect the key on the bottom floor to open the locked stone door.
 

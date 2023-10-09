@@ -1,5 +1,5 @@
 # SDL2-demo
-Platformer demo written in C++ with DSL2
+Platformer game engine demo written in C++ with DSL2
 
 https://www.youtube.com/watch?v=QTcjDp-XWHE
 
